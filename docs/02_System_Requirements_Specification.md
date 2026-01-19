@@ -72,7 +72,7 @@ High-level capabilities include:
 ## 3. Specific Requirements
 
 ### 3.1 Functional Requirements
-- FR1: Travel booking workflows for bus, train, plane, cruise  
+#### FR1: Travel booking workflows for bus, train, plane, cruise  
 	**Actors:** User / Operator
 
 	**Description:**  
@@ -92,7 +92,28 @@ High-level capabilities include:
 	- Internal logic is stubbed; real API integration is possible later.  
 	- Each FR maps to Phase 0 system definitions for traceability.  
 	- Enables modular use cases and test case definitions.
-- FR2: Accommodation and service coordination workflows  
+#### FR2: Accommodation and service coordination workflows
+
+**Actors:** User / Operator
+
+**Description:**  
+The system manages accommodation bookings (hotels, resorts) and coordinates related optional services. All interactions are initially stubbed/mocked. Each requirement is independently verifiable for logging, validation, and traceability.
+
+**Functional Requirements:**
+
+- **FR2.1:** The system allows the user to search for available accommodations based on destination and travel dates.  
+- **FR2.2:** The system validates room availability (stubbed logic).  
+- **FR2.3:** The system allows the user to select accommodation and optional services.  
+- **FR2.4:** The system calculates total cost including accommodation and optional services (stubbed logic).  
+- **FR2.5:** The system confirms bookings and generates unique booking IDs.  
+- **FR2.6:** The system logs all workflow steps for auditing and observability.  
+- **FR2.7:** The system allows modifications or cancellations (simulated) with workflow logging.  
+
+**Notes:**  
+- Internal logic is stubbed; real API integration is possible later.  
+- Each FR maps to Phase 0 system definitions for traceability.  
+- Enables modular use cases and test case definitions.
+  
 - FR3: Support for multiple travel categories  
 - FR4: Resource allocation engine with prioritization  
 - FR5: Knowledge sharing / micro-learning module  
