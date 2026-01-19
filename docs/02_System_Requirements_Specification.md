@@ -73,6 +73,25 @@ High-level capabilities include:
 
 ### 3.1 Functional Requirements
 - FR1: Travel booking workflows for bus, train, plane, cruise  
+	**Actors:** User / Operator
+
+	**Description:**  
+	The system supports booking travel across multiple modes — bus, train, plane, and cruise. All workflows are initially stubbed/mocked to simulate real interactions. Each requirement 	is independently verifiable for logging, validation, and traceability.
+
+	**Functional Requirements:**
+
+	- **FR1.1:** The system allows the user to select the travel mode (bus, train, plane, cruise).  
+	- **FR1.2:** The system accepts travel origin, destination, and travel date/time.  
+	- **FR1.3:** The system validates resource availability for the selected mode and travel details (stubbed logic).  
+	- **FR1.4:** The system calculates pricing based on mode, distance, and other factors (stubbed logic).  
+	- **FR1.5:** The system confirms booking and generates a unique booking ID.  
+	- **FR1.6:** The system logs all workflow steps for auditing and observability.  
+	- **FR1.7:** The system supports multiple simultaneous bookings per user.  
+
+	**Notes:**  
+	- Internal logic is stubbed; real API integration is possible later.  
+	- Each FR maps to Phase 0 system definitions for traceability.  
+	- Enables modular use cases and test case definitions.
 - FR2: Accommodation and service coordination workflows  
 - FR3: Support for multiple travel categories  
 - FR4: Resource allocation engine with prioritization  
