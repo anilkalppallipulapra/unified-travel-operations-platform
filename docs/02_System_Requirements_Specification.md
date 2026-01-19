@@ -114,7 +114,26 @@ The system manages accommodation bookings (hotels, resorts) and coordinates rela
 - Each FR maps to Phase 0 system definitions for traceability.  
 - Enables modular use cases and test case definitions.
   
-- FR3: Support for multiple travel categories  
+#### FR3: Support for multiple travel categories
+
+**Actors:** User / Operator
+
+**Description:**  
+The system supports different travel categories including personal, leisure, religious, and group bookings. Workflows for each category are initially stubbed/mocked. Each requirement is independently verifiable for logging, validation, and traceability.
+
+**Functional Requirements:**
+
+- **FR3.1:** The system allows the user to select the travel category (personal, leisure, religious, group).  
+- **FR3.2:** The system validates category-specific rules and availability (stubbed logic).  
+- **FR3.3:** The system adapts travel booking workflows based on the selected category.  
+- **FR3.4:** The system logs the selected category and workflow execution for auditing.  
+- **FR3.5:** The system allows switching categories before final booking confirmation (simulated).  
+
+**Notes:**  
+- Internal logic is stubbed; real API or business rules integration is possible later.  
+- Each FR maps to Phase 0 system definitions for traceability.  
+- Supports modular use cases and test case definitions.
+  
 - FR4: Resource allocation engine with prioritization  
 - FR5: Knowledge sharing / micro-learning module  
 - FR6: Analytics and reporting module  
