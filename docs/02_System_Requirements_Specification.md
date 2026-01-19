@@ -134,7 +134,27 @@ The system supports different travel categories including personal, leisure, rel
 - Each FR maps to Phase 0 system definitions for traceability.  
 - Supports modular use cases and test case definitions.
   
-- FR4: Resource allocation engine with prioritization  
+#### FR4: Resource Allocation Engine with Prioritization
+
+**Actors:** Manager / Operator
+
+**Description:**  
+The system allocates resources (vehicles, seats, accommodations, staff) to ongoing bookings based on priority rules. Allocation workflows are initially stubbed/mocked. Each requirement is independently verifiable for logging, validation, and traceability.
+
+**Functional Requirements:**
+
+- **FR4.1:** The system identifies all active bookings requiring resources.  
+- **FR4.2:** The system applies prioritization rules to allocate resources (stubbed logic).  
+- **FR4.3:** The system resolves conflicts when resources are insufficient (simulated).  
+- **FR4.4:** The system logs all allocation decisions and outputs reports for auditing.  
+- **FR4.5:** The system allows manual adjustments to allocations by managers (simulated).  
+- **FR4.6:** The system supports batch and real-time resource allocation workflows.  
+
+**Notes:**  
+- Internal logic is stubbed; real allocation algorithms can be integrated later.  
+- Each FR maps to Phase 0 system definitions for traceability.  
+- Enables modular use cases, testing, and analytics.
+  
 - FR5: Knowledge sharing / micro-learning module  
 - FR6: Analytics and reporting module  
 - FR7: AI/ML-based decision support layer  
