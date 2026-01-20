@@ -229,7 +229,29 @@ Provides decision support for resource allocation, prioritization, or recommenda
 - **Placeholders for real integration:** Minimal effort to replace stubs with production modules later.  
 - **Tech-agnostic:** Implementation can be in any language; snippets or demos are illustrative only.
   
-- FR8: Comprehensive logging for all workflows  
+### FR8 – Comprehensive Logging for All Workflows
+
+**Actors:** Operator, Manager, Analyst, Administrator  
+
+**Description:**  
+The system must provide **full logging and observability** across all modules and workflows, including travel booking, resource allocation, accommodation management, analytics, and AI/ML decision support. Logging ensures **traceability, auditing, and workflow validation**, even when stubs or placeholder modules are used.  
+
+**Functional Requirements:**  
+
+- **FR8.1:** The system logs all user actions, including booking, modification, and cancellation workflows.  
+- **FR8.2:** The system logs all workflow module executions, including analytics and AI/ML decisions.  
+- **FR8.3:** Logs capture input parameters, timestamps, and execution results (stub or demo outputs where real modules are unavailable).  
+- **FR8.4:** Logs are stored in a persistent, queryable format in the backend database.  
+- **FR8.5:** System supports filtered log views for operators, managers, analysts, and administrators (stubbed/demonstration views allowed).  
+- **FR8.6:** Optional lightweight reporting or dashboard views can visualize workflow execution for review and auditing purposes.  
+- **FR8.7:** Framework integration ensures that **all logging calls go through standardized interfaces**, making it easy to replace or extend log storage and visualization methods in the future.  
+
+**Implementation Notes:**  
+1. **Framework-first approach:** Logging is integrated across all modules and workflows.  
+2. **Stubs / placeholders:** Stub log entries are used where real modules are not yet implemented, ensuring end-to-end workflow validation.  
+3. **Optional demo modules:** Lightweight dashboards or simple visualizations can demonstrate logging outputs without requiring full production setup.  
+4. **Tech-agnostic:** Logging and storage approaches are described abstractly; implementation can be in any tech stack.
+  
 
 ### 3.2 Non-Functional Requirements
 - NFR1: System scalability to support multiple concurrent users  
