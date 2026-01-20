@@ -72,26 +72,28 @@ High-level capabilities include:
 ## 3. Specific Requirements
 
 ### 3.1 Functional Requirements
+
 #### FR1: Travel booking workflows for bus, train, plane, cruise  
-	**Actors:** User / Operator
+**Actors:** User / Operator
 
-	**Description:**  
-	The system supports booking travel across multiple modes — bus, train, plane, and cruise. All workflows are initially stubbed/mocked to simulate real interactions. Each requirement 	is independently verifiable for logging, validation, and traceability.
+**Description:**  
+The system supports booking travel across multiple modes — bus, train, plane, and cruise. All workflows are initially stubbed/mocked to simulate real interactions. Each requirement 	is independently verifiable for logging, validation, and traceability.
 
-	**Functional Requirements:**
+**Functional Requirements:**
 
-	- **FR1.1:** The system allows the user to select the travel mode (bus, train, plane, cruise).  
-	- **FR1.2:** The system accepts travel origin, destination, and travel date/time.  
-	- **FR1.3:** The system validates resource availability for the selected mode and travel details (stubbed logic).  
-	- **FR1.4:** The system calculates pricing based on mode, distance, and other factors (stubbed logic).  
-	- **FR1.5:** The system confirms booking and generates a unique booking ID.  
-	- **FR1.6:** The system logs all workflow steps for auditing and observability.  
-	- **FR1.7:** The system supports multiple simultaneous bookings per user.  
+- **FR1.1:** The system allows the user to select the travel mode (bus, train, plane, cruise).  
+- **FR1.2:** The system accepts travel origin, destination, and travel date/time.  
+- **FR1.3:** The system validates resource availability for the selected mode and travel details (stubbed logic).  
+- **FR1.4:** The system calculates pricing based on mode, distance, and other factors (stubbed logic).  
+- **FR1.5:** The system confirms booking and generates a unique booking ID.  
+- **FR1.6:** The system logs all workflow steps for auditing and observability.  
+- **FR1.7:** The system supports multiple simultaneous bookings per user.  
 
-	**Notes:**  
-	- Internal logic is stubbed; real API integration is possible later.  
-	- Each FR maps to Phase 0 system definitions for traceability.  
-	- Enables modular use cases and test case definitions.
+**Notes:**  
+- Internal logic is stubbed; real API integration is possible later.  
+- Each FR maps to Phase 0 system definitions for traceability.  
+- Enables modular use cases and test case definitions.
+
 #### FR2: Accommodation and service coordination workflows
 
 **Actors:** User / Operator
@@ -176,28 +178,57 @@ The system provides a knowledge sharing and micro-learning module to capture, ma
 - Designed for future integration with learning platforms or AI-based recommendations.  
 - Each FR maps to Phase 0 system definitions for traceability.
   
-#### FR6: Analytics and reporting module
+### FR6 – Analytics and Reporting Module
 
-**Actors:** Manager / Analyst / Operator
+**Actors:** Manager, Analyst  
 
 **Description:**  
-The system provides analytics and reporting capabilities to monitor travel operations, resource utilization, booking trends, and workflow efficiency. All calculations and data aggregations are initially stubbed/mocked. Each requirement is independently verifiable for logging, validation, and traceability.
+The system captures, aggregates, and reports workflow data for bookings, resource allocation, and performance metrics. Analytics execution is **fully integrated within the framework**, with **stubs and placeholders** representing unavailable production-grade analytics engines.  
 
-**Functional Requirements:**
+**Functional Requirements:**  
 
-- **FR6.1:** The system collects booking, accommodation, and resource allocation data.  
-- **FR6.2:** The system performs summary and trend analytics (stubbed logic).  
-- **FR6.3:** The system generates reports in tabular and graphical formats (simulated).  
-- **FR6.4:** The system allows filtering and aggregation based on date, category, and resource type.  
-- **FR6.5:** The system logs all analytics computations and report generations.  
-- **FR6.6:** The system supports exporting reports to common formats (PDF/CSV) using stubbed modules.  
+- **FR6.1:** The system logs all workflow events for bookings, allocations, and travel management.  
+- **FR6.2:** The system aggregates workflow data into reports or dashboards (stubbed or lightweight demo).  
+- **FR6.3:** The system provides filtered views for managers and analysts (stubbed placeholders).  
+- **FR6.4:** The system allows export of reports in standard formats (CSV, PDF, etc.) using placeholder/demo implementations.  
+- **FR6.5:** The system logs all analytics executions for observability and traceability.  
 
-**Notes:**  
-- Real-time analytics or live dashboards can be integrated later.  
-- Stubbed logic ensures framework-first modularity.  
-- Each FR maps to Phase 0 system definitions for traceability.
+**Implementation Notes:**  
+1. **Framework integration:** All calls go through module interfaces; workflows remain modular and replaceable.  
+2. **Stubs / placeholders:** Each analytics method returns predefined outputs for flow validation; placeholders indicate future real engines.  
+3. **Optional demonstration:** Lightweight tools may generate example reports or charts for demonstration purposes.  
+4. **Logging and observability:** All invocations are logged to validate execution and traceability.  
+
+### FR7 – AI/ML-based Decision Support Layer
+
+**Actors:** Manager, Analyst  
+
+**Description:**  
+Provides decision support for resource allocation, prioritization, or recommendation workflows. The AI/ML module is **integrated into the framework** with **stubs, placeholders, and optional lightweight demo logic**.  
+
+**Functional Requirements:**  
+
+- **FR7.1:** The system receives workflow data and predicts recommendations or priorities (stub returns default value).  
+- **FR7.2:** The system supports integration of future AI/ML models via clearly marked placeholders.  
+- **FR7.3:** The system logs all AI/ML recommendations and decisions for traceability.  
+- **FR7.4:** Optional demo logic can be included to generate example outputs for visualization or review.  
+- **FR7.5:** The system ensures that AI/ML module calls never break the workflow even if demo or stubbed results are used.  
+
+**Implementation Notes:**  
+1. **Framework integration:** All AI/ML calls use defined interfaces; workflows remain decoupled from proprietary models.  
+2. **Stubs / placeholders:** Stubbed return values validate workflow execution; placeholders mark real AI/ML integration points.  
+3. **Optional demonstration:** Lightweight models or computations may generate demo outputs to illustrate functionality.  
+4. **Logging and observability:** All recommendations or decisions are logged to validate workflow execution and outputs.  
+
+
+### General Principle Applied to FR6 & FR7
+
+- **Framework-first approach:** All modules exist and are wired correctly.  
+- **Execution via stubs:** Ensures workflow validation and logging without real-world dependencies.  
+- **Optional demo modules:** Lightweight execution to show results for GitHub / learning / review purposes.  
+- **Placeholders for real integration:** Minimal effort to replace stubs with production modules later.  
+- **Tech-agnostic:** Implementation can be in any language; snippets or demos are illustrative only.
   
-- FR7: AI/ML-based decision support layer  
 - FR8: Comprehensive logging for all workflows  
 
 ### 3.2 Non-Functional Requirements
