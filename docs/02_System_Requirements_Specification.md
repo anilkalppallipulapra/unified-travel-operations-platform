@@ -155,7 +155,27 @@ The system allocates resources (vehicles, seats, accommodations, staff) to ongoi
 - Each FR maps to Phase 0 system definitions for traceability.  
 - Enables modular use cases, testing, and analytics.
   
-- FR5: Knowledge sharing / micro-learning module  
+#### FR5: Knowledge sharing / micro-learning module
+
+**Actors:** Operator / Manager / Administrator
+
+**Description:**  
+The system provides a knowledge sharing and micro-learning module to capture, manage, and disseminate operational knowledge, process guidelines, and learning content. The module supports structured content access and usage tracking. All workflows are initially stubbed/mocked and fully logged.
+
+**Functional Requirements:**
+
+- **FR5.1:** The system allows administrators to create and manage knowledge content entries.  
+- **FR5.2:** The system categorizes knowledge content based on domain, role, and relevance.  
+- **FR5.3:** The system allows users to access knowledge content based on role and permissions.  
+- **FR5.4:** The system tracks content access and usage for reporting purposes (stubbed logic).  
+- **FR5.5:** The system supports micro-learning units linked to operational workflows.  
+- **FR5.6:** The system logs all content interactions for auditing and observability.  
+
+**Notes:**  
+- Content storage and recommendation logic are stubbed.  
+- Designed for future integration with learning platforms or AI-based recommendations.  
+- Each FR maps to Phase 0 system definitions for traceability.
+  
 - FR6: Analytics and reporting module  
 - FR7: AI/ML-based decision support layer  
 - FR8: Comprehensive logging for all workflows  
