@@ -253,12 +253,51 @@ The system must provide **full logging and observability** across all modules an
 4. **Tech-agnostic:** Logging and storage approaches are described abstractly; implementation can be in any tech stack.
   
 
-### 3.2 Non-Functional Requirements
-- NFR1: System scalability to support multiple concurrent users  
-- NFR2: Security for role-based access and sensitive data  
-- NFR3: Reliability with deterministic workflow execution  
-- NFR4: Performance: workflows must complete within defined thresholds  
-- NFR5: Usability: clear, modular interfaces for operators and managers  
+### 3.2 Non-Functional Requirements (NFRs)
+
+The following NFRs define the **quality attributes** and operational constraints of the Unified Travel Operations Platform (UTOP):  
+
+---
+
+**NFR1 – Scalability**  
+- The system must support **multiple concurrent users**, including operators, managers, and analysts, without performance degradation.  
+- Must allow **horizontal and vertical scaling** of backend services in the future.  
+
+**NFR2 – Security**  
+- Role-based access control (RBAC) must be enforced for all modules.  
+- Sensitive data (personal information, booking details, payment info placeholders) must be **encrypted at rest and in transit**.  
+- Logging and audit trails must respect user privacy and comply with general data protection best practices.  
+
+**NFR3 – Reliability**  
+- All workflows must execute **deterministically** with minimal chance of failure.  
+- System must **gracefully handle errors**, including stubbed or placeholder modules, without crashing.  
+- Retry and fallback mechanisms should be in place for stubbed external calls.  
+
+**NFR4 – Performance**  
+- Travel booking workflows (FR1) should **complete within defined thresholds** (e.g., under 5 seconds per workflow step in demo/stub environment).  
+- Analytics and AI/ML module execution should be **non-blocking** to core workflows, even if demo or placeholder outputs are used.  
+
+**NFR5 – Usability**  
+- Interfaces should be **clear, modular, and consistent** for operators, managers, analysts, and administrators.  
+- Navigation across modules should be intuitive; demo visualizations and logs should be easily interpretable.  
+
+**NFR6 – Maintainability & Extensibility**  
+- Framework-first architecture must allow **easy addition or replacement of modules** (e.g., real payment, analytics engines, AI models).  
+- Code should follow **SOLID principles** and modular design patterns to reduce coupling and improve maintainability.  
+
+**NFR7 – Observability**  
+- All workflows must be logged (FR8) and observable for auditing, troubleshooting, and traceability.  
+- Logging mechanisms should be **extendable to production-grade analytics or monitoring tools** in the future.  
+
+**NFR8 – Portability**  
+- System should run on standard desktop environments (Windows/macOS/Linux).  
+- Dependencies should be minimal and documented to allow easy setup and deployment.  
+
+
+**Notes:**  
+- NFRs are intentionally **tech-agnostic**; implementations can vary based on chosen stack.  
+- Demonstration modules (analytics, AI/ML, dashboards) must comply with NFRs even if actual production modules are not yet integrated.  
+  
 
 ### 3.3 External Interface Requirements
 - Simulated booking/payment services via stubs/mocks  
