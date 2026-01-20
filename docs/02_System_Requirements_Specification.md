@@ -176,7 +176,27 @@ The system provides a knowledge sharing and micro-learning module to capture, ma
 - Designed for future integration with learning platforms or AI-based recommendations.  
 - Each FR maps to Phase 0 system definitions for traceability.
   
-- FR6: Analytics and reporting module  
+#### FR6: Analytics and reporting module
+
+**Actors:** Manager / Analyst / Operator
+
+**Description:**  
+The system provides analytics and reporting capabilities to monitor travel operations, resource utilization, booking trends, and workflow efficiency. All calculations and data aggregations are initially stubbed/mocked. Each requirement is independently verifiable for logging, validation, and traceability.
+
+**Functional Requirements:**
+
+- **FR6.1:** The system collects booking, accommodation, and resource allocation data.  
+- **FR6.2:** The system performs summary and trend analytics (stubbed logic).  
+- **FR6.3:** The system generates reports in tabular and graphical formats (simulated).  
+- **FR6.4:** The system allows filtering and aggregation based on date, category, and resource type.  
+- **FR6.5:** The system logs all analytics computations and report generations.  
+- **FR6.6:** The system supports exporting reports to common formats (PDF/CSV) using stubbed modules.  
+
+**Notes:**  
+- Real-time analytics or live dashboards can be integrated later.  
+- Stubbed logic ensures framework-first modularity.  
+- Each FR maps to Phase 0 system definitions for traceability.
+  
 - FR7: AI/ML-based decision support layer  
 - FR8: Comprehensive logging for all workflows  
 
