@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+UTOP_Session_Brief*
