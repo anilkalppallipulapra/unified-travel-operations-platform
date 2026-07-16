@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UTOP.Booking\UTOP.Booking.csproj" />
+    <ProjectReference Include="..\UTOP.Accommodation\UTOP.Accommodation.csproj" />
+    <ProjectReference Include="..\UTOP.ResourceAllocation\UTOP.ResourceAllocation.csproj" />
+    <ProjectReference Include="..\UTOP.Pilgrimage\UTOP.Pilgrimage.csproj" />
+    <ProjectReference Include="..\UTOP.GroupManagement\UTOP.GroupManagement.csproj" />
+    <ProjectReference Include="..\UTOP.CostSplitting\UTOP.CostSplitting.csproj" />
+    <ProjectReference Include="..\UTOP.Notifications\UTOP.Notifications.csproj" />
+    <ProjectReference Include="..\UTOP.KnowledgeBase\UTOP.KnowledgeBase.csproj" />
+    <ProjectReference Include="..\UTOP.AIRecommendation\UTOP.AIRecommendation.csproj" />
+    <ProjectReference Include="..\UTOP.Identity\UTOP.Identity.csproj" />
+    <ProjectReference Include="..\UTOP.Localization\UTOP.Localization.csproj" />
+    <ProjectReference Include="..\UTOP.TravelCategory\UTOP.TravelCategory.csproj" />
+    <ProjectReference Include="..\UTOP.Analytics\UTOP.Analytics.csproj" />
+    <ProjectReference Include="..\UTOP.Shared\UTOP.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

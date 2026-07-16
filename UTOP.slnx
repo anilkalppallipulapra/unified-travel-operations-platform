@@ -1,0 +1,36 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/UTOP.Accommodation/UTOP.Accommodation.csproj" />
+    <Project Path="src/UTOP.AIRecommendation/UTOP.AIRecommendation.csproj" />
+    <Project Path="src/UTOP.Analytics/UTOP.Analytics.csproj" />
+    <Project Path="src/UTOP.API/UTOP.API.csproj" />
+    <Project Path="src/UTOP.Booking/UTOP.Booking.csproj" />
+    <Project Path="src/UTOP.CostSplitting/UTOP.CostSplitting.csproj" />
+    <Project Path="src/UTOP.GroupManagement/UTOP.GroupManagement.csproj" />
+    <Project Path="src/UTOP.Identity/UTOP.Identity.csproj" />
+    <Project Path="src/UTOP.KnowledgeBase/UTOP.KnowledgeBase.csproj" />
+    <Project Path="src/UTOP.Localization/UTOP.Localization.csproj" />
+    <Project Path="src/UTOP.Notifications/UTOP.Notifications.csproj" />
+    <Project Path="src/UTOP.Pilgrimage/UTOP.Pilgrimage.csproj" />
+    <Project Path="src/UTOP.ResourceAllocation/UTOP.ResourceAllocation.csproj" />
+    <Project Path="src/UTOP.Shared/UTOP.Shared.csproj" />
+    <Project Path="src/UTOP.TravelCategory/UTOP.TravelCategory.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UTOP.Accommodation.Tests/UTOP.Accommodation.Tests.csproj" />
+    <Project Path="tests/UTOP.AIRecommendation.Tests/UTOP.AIRecommendation.Tests.csproj" />
+    <Project Path="tests/UTOP.Analytics.Tests/UTOP.Analytics.Tests.csproj" />
+    <Project Path="tests/UTOP.Booking.Tests/UTOP.Booking.Tests.csproj" />
+    <Project Path="tests/UTOP.CostSplitting.Tests/UTOP.CostSplitting.Tests.csproj" />
+    <Project Path="tests/UTOP.GroupManagement.Tests/UTOP.GroupManagement.Tests.csproj" />
+    <Project Path="tests/UTOP.Identity.Tests/UTOP.Identity.Tests.csproj" />
+    <Project Path="tests/UTOP.Integration.Tests/UTOP.Integration.Tests.csproj" />
+    <Project Path="tests/UTOP.KnowledgeBase.Tests/UTOP.KnowledgeBase.Tests.csproj" />
+    <Project Path="tests/UTOP.Localization.Tests/UTOP.Localization.Tests.csproj" />
+    <Project Path="tests/UTOP.Notifications.Tests/UTOP.Notifications.Tests.csproj" />
+    <Project Path="tests/UTOP.Pilgrimage.Tests/UTOP.Pilgrimage.Tests.csproj" />
+    <Project Path="tests/UTOP.ResourceAllocation.Tests/UTOP.ResourceAllocation.Tests.csproj" />
+    <Project Path="tests/UTOP.Shared.Tests/UTOP.Shared.Tests.csproj" />
+    <Project Path="tests/UTOP.TravelCategory.Tests/UTOP.TravelCategory.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,6 @@
+@UTOP.API_HostAddress = http://localhost:5219
+
+GET {{UTOP.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
