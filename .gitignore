@@ -16,4 +16,5 @@ node_modules/
 frontend/dist/
 frontend/.vite/
 
-# Misc
+# IDE
+.vs/

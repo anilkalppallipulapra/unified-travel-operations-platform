@@ -118,7 +118,7 @@ UTOP.Booking/
 These corrections apply platform-wide. Defined here because Booking is the first LLD artifact. All subsequent context LLDs inherit these definitions.
 
 ```csharp
-namespace UTOP.SharedKernel;
+namespace UTOP.Shared;
 
 // CORRECTION: CreatedAt and UpdatedAt changed from DateTime to DateTimeOffset (ARCH-009)
 public abstract class AggregateRoot
