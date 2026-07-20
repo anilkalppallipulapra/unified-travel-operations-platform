@@ -5,3 +5,14 @@ __pycache__/
 .coverage
 htmlcov/
 UTOP_Session_Brief*
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
