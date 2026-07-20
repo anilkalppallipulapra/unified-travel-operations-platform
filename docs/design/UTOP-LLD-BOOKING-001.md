@@ -1,6 +1,6 @@
 # Low-Level Design — Booking Context
 **Document ID**: UTOP-LLD-BOOKING-001  
-**Version**: 1.3.0  
+**Version**: 1.4.0  
 **Status**: Baselined  
 **Context**: Booking  
 **Schema**: `utop_booking`  
@@ -16,6 +16,7 @@
 | 1.1.0 | Self-review corrections: BookingId.Generate() accepts DateOnly from IClock — no internal DateTime.UtcNow; EF Core Money mapping changed from HasConversion with anonymous type to OwnsOne; AggregateRoot and DomainEvent base class temporal fields corrected to DateTimeOffset; DomainEvent base class CorrelationId corrected to Shared Kernel struct; PassengerDetail DTO defined; AmendBookingCommandHandler and CompleteBookingCommandHandler added (were missing); ResourceAllocatedEventHandler added for inbound integration event; GetBookingsByOperatorQueryHandler added; passenger count completeness check added to Confirm(); BookingStatus initial state corrected from Draft to PendingValidation per ARCH-005; Base class corrections section added |
 | 1.2.0 | PassengerConfiguration added — maps all columns of utop_booking.passengers table; Typo corrected: ReturnsBokingId → ReturnsBookingId |
 | 1.3.0 | StartJourneyCommand and StartJourneyCommandHandler added — closes missing application path for MarkInTransit(); CompleteBookingCommand documented as requiring prior StartJourney; two tests added for StartJourney and Complete invalid state; Itinerary entity extended with DepartureCity, DepartureCountry, ArrivalCity, ArrivalCountry properties; ItineraryConfiguration updated to map all four columns; CreateBookingCommand and AmendBookingCommand updated to carry city and country fields |
+| 1.4.0 | Corrections discovered during implementation (`feature/implementation`, tracked in `PENDING-LLD-CORRECTIONS.md`): `IBookingReadRepository` relocated from `Domain.Repositories` (§9.1) to `Application.Queries` (§7.5) — original placement inverted the Domain→Application dependency direction, since its return type `BookingReadModel` is an Application-layer type; `RemovePassenger()` added to the aggregate (§4.1) — required by BK-INV-005's "enforced on AddPassenger() and RemovePassenger()" wording but missing from the original code sample; does not reduce `PassengerCount`, party-size re-pricing stays deferred to CostSplitting per UTOP-LLD-BK-02; `AddPassenger()` now explicitly guards against `Completed` status per BK-INV-007, closing a gap where the original sample enforced this guard on some mutation methods but not all; namespace `UTOP.SharedKernel` renamed to `UTOP.Shared` throughout, matching the rename now canonical in ARCH-010 |
 
 ---
 
@@ -483,11 +484,16 @@ public sealed class Booking : AggregateRoot
     /// <summary>
     /// Adds a passenger to the manifest.
     /// BK-INV-005: _passengers.Count may not exceed PassengerCount.Total.
+    /// BK-INV-007: throws if Completed (all mutation methods must enforce this —
+    /// the original code sample only enforced it on some methods; corrected here).
     /// Full equality is enforced at Confirm() time.
     /// Idempotent on duplicate passenger Id.
     /// </summary>
     public void AddPassenger(Passenger passenger)
     {
+        if (Status == BookingStatus.Completed)
+            throw new BookingAlreadyCompletedException(BookingId);
+
         if (_passengers.Any(p => p.Id == passenger.Id))
             return;
 
@@ -495,6 +501,24 @@ public sealed class Booking : AggregateRoot
             throw new PassengerCountMismatchException(BookingId, Passengers.Total, _passengers.Count + 1);
 
         _passengers.Add(passenger);
+    }
+
+    /// <summary>
+    /// Removes a passenger from the manifest. BK-INV-005 requires this guard to exist
+    /// alongside AddPassenger() — it was missing from the original code sample entirely.
+    /// BK-INV-007: throws if Completed.
+    /// Does NOT reduce PassengerCount — PassengerCount is the booked party size set at
+    /// Create()/Amend() time; removing a manifested passenger is a manifest change, not
+    /// a re-pricing event. Reducing party size and any associated refund is a
+    /// CostSplitting concern, deferred per UTOP-LLD-BK-02. Idempotent if the passenger
+    /// is not present.
+    /// </summary>
+    public void RemovePassenger(Guid passengerId)
+    {
+        if (Status == BookingStatus.Completed)
+            throw new BookingAlreadyCompletedException(BookingId);
+
+        _passengers.RemoveAll(p => p.Id == passengerId);
     }
 }
 ```
@@ -1142,6 +1166,19 @@ public sealed record BookingReadModel(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
+/// <summary>
+/// Relocated here from Domain.Repositories (was the original LLD's placement) — its
+/// return type BookingReadModel is an Application-layer type, so declaring this
+/// interface in Domain would invert the dependency direction. The read-side port
+/// belongs beside the read model it returns.
+/// </summary>
+public interface IBookingReadRepository
+{
+    Task<BookingReadModel?> GetByIdAsync(BookingId id, CancellationToken ct = default);
+    Task<IReadOnlyList<BookingReadModel>> GetByOperatorAsync(
+        string operatorId, int page, int pageSize, CancellationToken ct = default);
+}
+
 public sealed class GetBookingByIdQueryHandler
 {
     private readonly IBookingReadRepository _read;
@@ -1241,14 +1278,9 @@ public interface IBookingRepository
         DateTimeOffset departureUtc,
         CancellationToken ct = default);
 }
-
-public interface IBookingReadRepository
-{
-    Task<BookingReadModel?> GetByIdAsync(BookingId id, CancellationToken ct = default);
-    Task<IReadOnlyList<BookingReadModel>> GetByOperatorAsync(
-        string operatorId, int page, int pageSize, CancellationToken ct = default);
-}
 ```
+
+`IBookingReadRepository` is **not** declared here — see §7.5. Its return type, `BookingReadModel`, lives in `Application.Queries`; declaring the interface in `Domain.Repositories` would make the Domain layer depend on an Application-layer type, inverting the dependency direction Clean Architecture requires. The read-side port belongs next to the read model it returns.
 
 ### 9.2 PostgreSQL Schema
 
@@ -1639,6 +1671,10 @@ Booking_BKINV004_OneAdultPresent_ConfirmSucceeds()
 Booking_BKINV005_ManifestCountBelowPassengerCount_ConfirmThrows()
 Booking_BKINV005_ManifestCountExceedsPassengerCount_AddPassengerThrows()
 Booking_BKINV005_ManifestCountMatchesPassengerCount_ConfirmSucceeds()
+Booking_BKINV005_RemovePassenger_NotPresent_IsIdempotent()
+Booking_BKINV005_RemovePassenger_DoesNotReducePassengerCount()
+Booking_BKINV007_StatusCompleted_AddPassengerThrows()
+Booking_BKINV007_StatusCompleted_RemovePassengerThrows()
 
 Booking_BKTINV004_DeparturePassedAtConfirm_ConfirmThrows()
 

@@ -10,6 +10,7 @@ UTOP_Session_Brief*
 bin/
 obj/
 *.user
+.vs/
 
 # Node / frontend
 node_modules/
@@ -18,3 +19,4 @@ frontend/.vite/
 
 # IDE
 .vs/
+frontend/.vite/

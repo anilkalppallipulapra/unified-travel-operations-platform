@@ -1,9 +1,19 @@
 # UTOP Shared Kernel Governance
 **Document ID**: UTOP-ARCH-010  
-**Version**: 1.0.0  
-**Status**: Locked  
+**Version**: 1.0.1  
+**Status**: Locked (amended)  
 **Branch**: feature/phase3-stabilization  
 **Depends on**: UTOP-ARCH-003 (Bounded Context Map), UTOP-ARCH-006 (Shared Kernel Contents), UTOP-ARCH-008 (Context Ownership Matrix), UTOP-ARCH-009 (Temporal Semantics)
+
+---
+
+## Amendment Log
+
+This document was locked under Decision 9's tag gate with no prior changelog convention. Corrections below are implementation-discovered defects in the canonical code samples, not new admissions — no Architecture Board admission process applies (§9 governs new items, not sample corrections), but the amendment is logged here for traceability since future context LLDs copy directly from this document's §5 samples.
+
+| Version | Change |
+|---|---|
+| 1.0.1 | §5.1 `Money` and §5.5 `PassengerCount` constructors made `private`, with `Create()` as the sole public construction path. The original positional-record samples (`public sealed record Money(decimal Amount, Currency Currency)`) left the primary constructor public, so `new Money(-500, ...)` bypassed the non-negativity guard entirely — discovered during `UTOP.Booking` implementation. Namespace renamed `UTOP.SharedKernel` → `UTOP.Shared` throughout §5, to match the namespace already built and in use on `feature/implementation`. |
 
 ---
 
@@ -101,11 +111,27 @@ The following items are the complete and current Shared Kernel inventory as of P
 ### 5.1 Money
 
 ```csharp
-namespace UTOP.SharedKernel;
+namespace UTOP.Shared;
 
-public sealed record Money(decimal Amount, Currency Currency)
+public sealed record Money
 {
-    public Money { Amount = Amount >= 0 ? Amount : throw new ArgumentOutOfRangeException(nameof(Amount)); }
+    public decimal Amount { get; }
+    public Currency Currency { get; }
+
+    private Money(decimal amount, Currency currency)
+    {
+        Amount = amount;
+        Currency = currency;
+    }
+
+    /// <summary>Only public construction path — the positional-record pattern this
+    /// replaces allowed `new Money(-500, ...)` to bypass validation entirely.</summary>
+    public static Money Create(decimal amount, Currency currency)
+    {
+        if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
+        return new Money(amount, currency);
+    }
+
     public Money Add(Money other) { /* same currency guard */ }
     public Money Subtract(Money other) { /* same currency guard; non-negative result guard */ }
     public static Money Zero(Currency currency) => new(0m, currency);
@@ -121,7 +147,7 @@ public enum Currency { SAR, USD, EUR, GBP, INR, AED, MYR, IDR /* extensible — 
 ### 5.2 DateRange
 
 ```csharp
-namespace UTOP.SharedKernel;
+namespace UTOP.Shared;
 
 public sealed record DateRange(DateOnly Start, DateOnly End)
 {
@@ -143,7 +169,7 @@ public sealed record DateRange(DateOnly Start, DateOnly End)
 ### 5.3 Location
 
 ```csharp
-namespace UTOP.SharedKernel;
+namespace UTOP.Shared;
 
 public sealed record Location(
     string Code,           // IATA airport code, GTFS stop ID, or platform-defined location code
@@ -161,7 +187,7 @@ public enum LocationType { Airport, RailStation, BusTerminal, SeaPort, Accommoda
 ### 5.4 CorrelationId
 
 ```csharp
-namespace UTOP.SharedKernel;
+namespace UTOP.Shared;
 
 public readonly record struct CorrelationId(Guid Value)
 {
@@ -178,18 +204,31 @@ public readonly record struct CorrelationId(Guid Value)
 ### 5.5 PassengerCount
 
 ```csharp
-namespace UTOP.SharedKernel;
+namespace UTOP.Shared;
 
-public readonly record struct PassengerCount(int Adults, int Children, int Infants)
+public readonly record struct PassengerCount
 {
-    public PassengerCount
+    public int Adults { get; }
+    public int Children { get; }
+    public int Infants { get; }
+
+    private PassengerCount(int adults, int children, int infants)
     {
-        if (Adults < 1) throw new ArgumentOutOfRangeException(nameof(Adults), "At least one adult required.");
-        if (Children < 0) throw new ArgumentOutOfRangeException(nameof(Children));
-        if (Infants < 0) throw new ArgumentOutOfRangeException(nameof(Infants));
-        if (Infants > Adults) throw new ArgumentException("Infants may not exceed adults (lap infant rule).");
+        Adults = adults;
+        Children = children;
+        Infants = infants;
     }
-    
+
+    /// <summary>Only public construction path — same rationale as Money.Create().</summary>
+    public static PassengerCount Create(int adults, int children, int infants)
+    {
+        if (adults < 1) throw new ArgumentOutOfRangeException(nameof(adults), "At least one adult required.");
+        if (children < 0) throw new ArgumentOutOfRangeException(nameof(children));
+        if (infants < 0) throw new ArgumentOutOfRangeException(nameof(infants));
+        if (infants > adults) throw new ArgumentException("Infants may not exceed adults (lap infant rule).");
+        return new PassengerCount(adults, children, infants);
+    }
+
     public int Total => Adults + Children + Infants;
 }
 ```
@@ -201,7 +240,7 @@ public readonly record struct PassengerCount(int Adults, int Children, int Infan
 ### 5.6 IClock
 
 ```csharp
-namespace UTOP.SharedKernel.Time;
+namespace UTOP.Shared.Time;
 
 public interface IClock
 {
@@ -364,9 +403,9 @@ The ADR is closed with the rejection reason. The proposing team implements the c
 | Shared Kernel type containing business logic | **FORBIDDEN** | Move logic to owning context |
 | Shared Kernel type referencing a specific bounded context | **FORBIDDEN** | Redesign — this is circular coupling |
 | Using a Shared Kernel type as a DTO across context boundaries | **FORBIDDEN** | Define an integration event payload |
-| Importing `UTOP.SharedKernel` from an infrastructure layer without passing through domain | **FORBIDDEN** | Domain imports Shared Kernel; infrastructure imports domain |
+| Importing `UTOP.Shared` from an infrastructure layer without passing through domain | **FORBIDDEN** | Domain imports Shared Kernel; infrastructure imports domain |
 | Extending a Shared Kernel enum in a bounded context assembly | **FORBIDDEN** | Request extension via Architecture Board; use local enum in the interim |
-| `ReplayClock` in `UTOP.SharedKernel.Time` | **FORBIDDEN** | `UTOP.Infrastructure.EventReplay` |
+| `ReplayClock` in `UTOP.Shared.Time` | **FORBIDDEN** | `UTOP.Infrastructure.EventReplay` |
 | Shared Kernel types carrying nullable navigation properties | **FORBIDDEN** | Shared Kernel types are self-contained value objects |
 | Skipping the breaking-change protocol for a MAJOR change | **FORBIDDEN** | Follow §7.2 without exception |
 

@@ -40,13 +40,13 @@ docs/architecture/
 
 All LLD documents live in:
 ```
-docs/architecture/lld/
+docs/design/
 ```
 
 | Document ID | Filename | Context | Description |
 |---|---|---|---|
-| UTOP-LLD-BOOKING-001 | `lld_booking.md` | Booking | Aggregate design, value objects, domain events, command handlers, port interfaces, PostgreSQL schema, EF Core configuration, integration events, test strategy |
-| UTOP-LLD-ACCOMMODATION-001 | `lld_accommodation.md` | Accommodation | *(Planned — not yet produced)* |
+| UTOP-LLD-BOOKING-001 | `UTOP-LLD-ACCOMMODATION-001.md` | Booking | Aggregate design, value objects, domain events, command handlers, port interfaces, PostgreSQL schema, EF Core configuration, integration events, test strategy |
+| UTOP-LLD-ACCOMMODATION-001 | `UTOP-LLD-ACCOMMODATION-001.md` | Accommodation | *(Planned — not yet produced)* |
 | UTOP-LLD-RESOURCEALLOCATION-001 | `lld_resource_allocation.md` | ResourceAllocation | *(Planned — not yet produced)* |
 | UTOP-LLD-TRAVELCATEGORY-001 | `lld_travel_category.md` | TravelCategory | *(Planned — not yet produced)* |
 | UTOP-LLD-PILGRIMAGE-001 | `lld_pilgrimage.md` | Pilgrimage | *(Planned — not yet produced)* |
