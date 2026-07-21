@@ -1,6 +1,6 @@
 # Low-Level Design — Booking Context
 **Document ID**: UTOP-LLD-BOOKING-001  
-**Version**: 1.4.0  
+**Version**: 1.5.0  
 **Status**: Baselined  
 **Context**: Booking  
 **Schema**: `utop_booking`  
@@ -17,6 +17,7 @@
 | 1.2.0 | PassengerConfiguration added — maps all columns of utop_booking.passengers table; Typo corrected: ReturnsBokingId → ReturnsBookingId |
 | 1.3.0 | StartJourneyCommand and StartJourneyCommandHandler added — closes missing application path for MarkInTransit(); CompleteBookingCommand documented as requiring prior StartJourney; two tests added for StartJourney and Complete invalid state; Itinerary entity extended with DepartureCity, DepartureCountry, ArrivalCity, ArrivalCountry properties; ItineraryConfiguration updated to map all four columns; CreateBookingCommand and AmendBookingCommand updated to carry city and country fields |
 | 1.4.0 | Corrections discovered during implementation (`feature/implementation`, tracked in `PENDING-LLD-CORRECTIONS.md`): `IBookingReadRepository` relocated from `Domain.Repositories` (§9.1) to `Application.Queries` (§7.5) — original placement inverted the Domain→Application dependency direction, since its return type `BookingReadModel` is an Application-layer type; `RemovePassenger()` added to the aggregate (§4.1) — required by BK-INV-005's "enforced on AddPassenger() and RemovePassenger()" wording but missing from the original code sample; does not reduce `PassengerCount`, party-size re-pricing stays deferred to CostSplitting per UTOP-LLD-BK-02; `AddPassenger()` now explicitly guards against `Completed` status per BK-INV-007, closing a gap where the original sample enforced this guard on some mutation methods but not all; namespace `UTOP.SharedKernel` renamed to `UTOP.Shared` throughout, matching the rename now canonical in ARCH-010 |
+| 1.5.0 | Second round of implementation-discovered corrections (§9.2/§9.3): `bookings` table gained `route` (JSONB, full `JourneyRoute` fidelity via `HasConversion`) and `adults`/`children`/`infants` columns — both were completely absent from the original schema and EF config, a genuine gap rather than a workaround; `ItineraryConfiguration`'s `DeparturePoint`/`ArrivalPoint` mapping switched from `OwnsOne` (which cannot materialize `Location` with `Type`/`DisplayName` unmapped, since `Location` has no parameterless constructor) to a plain `Code`-only string column via `HasConversion` — `Type`/`DisplayName` are explicitly not round-tripped here, confirmed nothing downstream reads them for these two properties; `BookingConfiguration.Passengers` now mapped via `ComplexProperty` (EF Core 8+), not `OwnsOne`, since `PassengerCount` is a `readonly record struct` and `OwnsOne` requires a class; all six indexes and the unique constraint from §9.2 added to `BookingConfiguration`/`ItineraryConfiguration` (`HasIndex`/`IsUnique`/`HasFilter`) — the original EF sample showed none of them; `Mode`/`Status`/`Category`/`TotalPrice.Currency`/`Passenger.Type` given explicit `HasMaxLength()` matching their DDL column sizes; `PassengerList` relationship given `.IsRequired()` and `.OnDelete(DeleteBehavior.Cascade)`, matching the schema's `NOT NULL ... ON DELETE CASCADE` which the original sample silently dropped. `ix_outbox_unpublished` is not added to any EF config in this document — there is no `OutboxEventConfiguration` class here; the outbox table belongs to the deferred outbox-processor LLD (`UTOP-LLD-BK-04`), not to Booking's own EF configuration. |
 
 ---
 
@@ -1298,6 +1299,10 @@ CREATE TABLE utop_booking.bookings (
     operator_id         VARCHAR(100) NOT NULL,
     group_id            VARCHAR(100) NULL,
     pilgrimage_id       VARCHAR(100) NULL,
+    route               JSONB NOT NULL,             -- JourneyRoute: Origin/Destination (Code/Type/DisplayName) + RouteType; full fidelity, no owned-type materialization involved
+    adults              INT NOT NULL,                -- PassengerCount — see BookingConfiguration.ComplexProperty mapping in §9.3
+    children            INT NOT NULL,
+    infants             INT NOT NULL,
     total_amount        NUMERIC(18,4) NOT NULL,
     currency            VARCHAR(10) NOT NULL,       -- Currency enum name e.g. 'SAR', 'USD'
     amendment_version   INT NOT NULL DEFAULT 0,
@@ -1384,15 +1389,45 @@ public sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
 
         builder.Property(b => b.Mode)
             .HasConversion<string>()
-            .HasColumnName("mode");
+            .HasColumnName("mode")
+            .HasMaxLength(20)
+            .IsRequired();
 
         builder.Property(b => b.Status)
             .HasConversion<string>()
-            .HasColumnName("status");
+            .HasColumnName("status")
+            .HasMaxLength(30)
+            .IsRequired();
 
         builder.Property(b => b.Category)
             .HasConversion<string>()
-            .HasColumnName("category");
+            .HasColumnName("category")
+            .HasMaxLength(20)
+            .IsRequired();
+
+        // JourneyRoute (Origin/Destination Location + RouteType) — a single JSONB column via
+        // HasConversion rather than nested OwnsOne. EF's owned-type materialization rule
+        // (navigations to owned types can never satisfy a constructor parameter) rules out
+        // nested owned types for any positional-record type here; this was a genuine gap in
+        // the original sample, not a workaround for something EF could otherwise do cleanly.
+        builder.Property(b => b.Route)
+            .HasConversion(
+                route => JsonSerializer.Serialize(route, (JsonSerializerOptions?)null),
+                json => JsonSerializer.Deserialize<JourneyRoute>(json, (JsonSerializerOptions?)null)!)
+            .HasColumnName("route")
+            .HasColumnType("jsonb")
+            .IsRequired();
+
+        // PassengerCount is a readonly record struct — OwnsOne requires a class and silently
+        // resolves to the wrong overload for a struct. ComplexProperty (EF Core 8+) is the
+        // correct API for struct-based value objects; this was missing entirely from the
+        // original sample, along with the adults/children/infants columns themselves.
+        builder.ComplexProperty(b => b.Passengers, passengers =>
+        {
+            passengers.Property(p => p.Adults).HasColumnName("adults").IsRequired();
+            passengers.Property(p => p.Children).HasColumnName("children").IsRequired();
+            passengers.Property(p => p.Infants).HasColumnName("infants").IsRequired();
+        });
 
         // Money uses OwnsOne — splits into two columns.
         // HasConversion with anonymous type does not work in EF Core.
@@ -1406,10 +1441,11 @@ public sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
             money.Property(m => m.Currency)
                 .HasConversion<string>()
                 .HasColumnName("currency")
+                .HasMaxLength(10)
                 .IsRequired();
         });
 
-        builder.Property(b => b.OperatorId).HasColumnName("operator_id").HasMaxLength(100);
+        builder.Property(b => b.OperatorId).HasColumnName("operator_id").HasMaxLength(100).IsRequired();
         builder.Property(b => b.GroupId).HasColumnName("group_id").HasMaxLength(100);
         builder.Property(b => b.PilgrimageId).HasColumnName("pilgrimage_id").HasMaxLength(100);
         builder.Property(b => b.AmendmentVersion).HasColumnName("amendment_version");
@@ -1426,11 +1462,26 @@ public sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .HasForeignKey<Itinerary>("booking_id")
             .IsRequired();
 
+        // PassengerList — schema is NOT NULL with ON DELETE CASCADE (§9.2); the original
+        // sample omitted both IsRequired() and OnDelete(Cascade), so EF made the FK nullable
+        // and dropped the cascade behavior entirely. Corrected here.
         builder.HasMany(b => b.PassengerList)
             .WithOne()
-            .HasForeignKey("booking_id");
+            .HasForeignKey("booking_id")
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Ignore(b => b.DomainEvents);
+
+        // Indexes — all six plus the unique constraint from §9.2 were missing from this
+        // section entirely in the original sample; a complete miss caught only by diffing
+        // the generated migration against the DDL. Added here so this section is no longer
+        // out of sync with §9.2, which is the source of truth for the schema.
+        builder.HasIndex(b => b.BookingId).IsUnique().HasDatabaseName("uq_bookings_booking_id");
+        builder.HasIndex(b => b.OperatorId).HasDatabaseName("ix_bookings_operator");
+        builder.HasIndex(b => b.Status).HasDatabaseName("ix_bookings_status");
+        builder.HasIndex(b => b.GroupId).HasDatabaseName("ix_bookings_group_id").HasFilter("group_id IS NOT NULL");
+        builder.HasIndex(b => b.PilgrimageId).HasDatabaseName("ix_bookings_pilgrimage_id").HasFilter("pilgrimage_id IS NOT NULL");
     }
 }
 
@@ -1450,21 +1501,29 @@ public sealed class ItineraryConfiguration : IEntityTypeConfiguration<Itinerary>
         builder.Property(i => i.CarrierReference).HasColumnName("carrier_reference").HasMaxLength(20);
         builder.Property(i => i.ServiceClass).HasColumnName("service_class").HasMaxLength(20);
 
-        // Location owned types — Code maps to airport/stop code column.
-        // City and country are separate Itinerary properties above; Location does not carry them.
-        builder.OwnsOne(i => i.DeparturePoint, loc =>
-        {
-            loc.Property(l => l.Code).HasColumnName("departure_airport").HasMaxLength(10);
-            loc.Ignore(l => l.Type);
-            loc.Ignore(l => l.DisplayName);
-        });
+        // DeparturePoint/ArrivalPoint (Location) — Location has no parameterless constructor,
+        // so OwnsOne + Ignore(Type)/Ignore(DisplayName) cannot materialize it with 2 of 3
+        // constructor parameters unmapped; this was a genuine defect in the original sample,
+        // not just an omission. Converted to a plain string column (Code only) via
+        // HasConversion instead. Type and DisplayName are NOT round-tripped for these two
+        // properties specifically — confirmed nothing downstream reads them for Itinerary's
+        // departure/arrival points (unlike Booking.Route, where full Location fidelity for
+        // Origin/Destination is preserved via the JSONB column above).
+        builder.Property(i => i.DeparturePoint)
+            .HasConversion(
+                loc => loc.Code,
+                code => new Location(code, LocationType.Airport, null))
+            .HasColumnName("departure_airport")
+            .HasMaxLength(10);
 
-        builder.OwnsOne(i => i.ArrivalPoint, loc =>
-        {
-            loc.Property(l => l.Code).HasColumnName("arrival_airport").HasMaxLength(10);
-            loc.Ignore(l => l.Type);
-            loc.Ignore(l => l.DisplayName);
-        });
+        builder.Property(i => i.ArrivalPoint)
+            .HasConversion(
+                loc => loc.Code,
+                code => new Location(code, LocationType.Airport, null))
+            .HasColumnName("arrival_airport")
+            .HasMaxLength(10);
+
+        builder.HasIndex(i => i.DepartureUtc).HasDatabaseName("ix_itineraries_departure");
     }
 }
 
@@ -1487,6 +1546,7 @@ public sealed class PassengerConfiguration : IEntityTypeConfiguration<Passenger>
         builder.Property(p => p.Type)
             .HasConversion<string>()
             .HasColumnName("passenger_type")
+            .HasMaxLength(10)
             .IsRequired();
 
         builder.Property(p => p.DateOfBirth)
