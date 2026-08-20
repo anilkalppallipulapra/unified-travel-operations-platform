@@ -1,6 +1,6 @@
 # UTOP Shared Kernel Governance
 **Document ID**: UTOP-ARCH-010  
-**Version**: 1.0.1  
+**Version**: 1.0.2  
 **Status**: Locked (amended)  
 **Branch**: feature/phase3-stabilization  
 **Depends on**: UTOP-ARCH-003 (Bounded Context Map), UTOP-ARCH-006 (Shared Kernel Contents), UTOP-ARCH-008 (Context Ownership Matrix), UTOP-ARCH-009 (Temporal Semantics)
@@ -14,6 +14,7 @@ This document was locked under Decision 9's tag gate with no prior changelog con
 | Version | Change |
 |---|---|
 | 1.0.1 | §5.1 `Money` and §5.5 `PassengerCount` constructors made `private`, with `Create()` as the sole public construction path. The original positional-record samples (`public sealed record Money(decimal Amount, Currency Currency)`) left the primary constructor public, so `new Money(-500, ...)` bypassed the non-negativity guard entirely — discovered during `UTOP.Booking` implementation. Namespace renamed `UTOP.SharedKernel` → `UTOP.Shared` throughout §5, to match the namespace already built and in use on `feature/implementation`. |
+| 1.0.2 | §5.2 `DateRange` retired — never implemented in `UTOP.Shared` despite being ratified here; the only two contexts to reach implementation (Booking's `Itinerary`, Accommodation's stay window) both use raw `DateOnly`/`DateTimeOffset` fields instead. Type count corrected 10→9, headroom 5→6. |
 
 ---
 
@@ -144,27 +145,9 @@ public enum Currency { SAR, USD, EUR, GBP, INR, AED, MYR, IDR /* extensible — 
 
 **Constraints**: `Money` performs arithmetic only. It does not convert currencies. Currency conversion belongs to a dedicated FX service (not yet defined — to be resolved in LLD).
 
-### 5.2 DateRange
+### 5.2 DateRange — RETIRED
 
-```csharp
-namespace UTOP.Shared;
-
-public sealed record DateRange(DateOnly Start, DateOnly End)
-{
-    public DateRange
-    {
-        if (End < Start) throw new ArgumentException("End must be on or after Start.");
-    }
-    
-    public bool Contains(DateOnly date) => date >= Start && date <= End;
-    public bool Overlaps(DateRange other) => Start <= other.End && End >= other.Start;
-    public int DurationInDays => End.DayNumber - Start.DayNumber;
-}
-```
-
-**Admission rationale**: Referenced by Booking (travel window), Inventory (availability window), Scheduling (service window), and Pilgrimage (Miqat window). The semantics of a date range are identical in all four contexts — a start date, an end date, non-negative duration, overlap detection. No business logic. Stable.
-
-**Constraints**: `DateRange` operates on `DateOnly` — it is calendar-range only. Time-precision ranges (e.g., a booking slot with hour-level granularity) are context-specific and do not belong here.
+**Retired 2026-08-01.** Originally admitted for Booking (travel window), Inventory, Scheduling, and Pilgrimage. In practice, the only two contexts to reach implementation (Booking's `Itinerary`, Accommodation's stay window) both ended up using raw `DateOnly`/`DateTimeOffset` fields instead — Booking because its dates are timestamps, not calendar ranges; Accommodation by implementation decision on 2026-08-01, after discovering this type was never actually built into `UTOP.Shared`. Rather than build it now to match a spec no implemented context uses, it's removed from the ratified list. If a future context (Pilgrimage, Inventory) genuinely needs calendar-range semantics, re-admit through the normal §9 process — don't resurrect this entry by default.
 
 ### 5.3 Location
 
@@ -281,7 +264,7 @@ When in doubt about whether something belongs in the Shared Kernel, the answer i
 
 The Shared Kernel is not a library. It is a precision instrument. If the Shared Kernel grows beyond **fifteen top-level types** (not counting enums and small supporting records), that is a signal that the anti-bloat policy has been compromised. A review is mandatory at that threshold.
 
-Current count: **10 top-level types** (Money, DateRange, Location, CorrelationId, PassengerCount, IClock, GeoCoordinate, DailyPrayerSchedule, IBusinessCalendar, LocalizedTime). Headroom: 5.
+Current count: **9 top-level types** (Money, Location, CorrelationId, PassengerCount, IClock, GeoCoordinate, DailyPrayerSchedule, IBusinessCalendar, LocalizedTime). `DateRange` retired 2026-08-01 — see §5.2. Headroom: 6.
 
 ### 6.3 Periodic Review
 

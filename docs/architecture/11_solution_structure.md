@@ -1,7 +1,6 @@
 # UTOP Solution Structure — v2 (Implementation Kickoff)
 
 **Status**: Backend structure locked. Frontend structure locked.
-**Amended**: (1) `GeoCoordinate`, `DailyPrayerSchedule`, `PrayerWindow`, `Prayer` moved from `Domain/ValueObjects/` to `Time/` (namespace `UTOP.Shared.Time` per ARCH-009 §8.4); (2) `Infrastructure/Messaging/` added to the Full DDD context template (§2.1) — both discovered during `UTOP.Booking` implementation, tracked in `PENDING-LLD-CORRECTIONS.md`.
 **Phase**: Phase 5 — Implementation kickoff, .NET 10 solution scaffold + React/TS frontend scaffold
 **Supersedes**: `02_high_level_design.md` §2.1 (Frontend Role-Based UI Structure) and §3.1 (Solution Structure) — both diagrams predate Phase 3 stabilization; §3.1 was missing one context and understating the Shared Kernel, §2.1 is missing feature folders for 4 of the 13 contexts.
 **Feeds from**: UTOP-ARCH-001 (ADR-001, Modular Monolith), UTOP-ARCH-008 (context ownership matrix), UTOP-ARCH-010 (shared kernel governance)
@@ -31,11 +30,14 @@ UTOP.sln
 │   │   │   ├── Exceptions/                 (base domain exceptions)
 │   │   │   └── ValueObjects/
 │   │   │       ├── Money.cs
-│   │   │       ├── DateRange.cs
 │   │   │       ├── Location.cs
 │   │   │       ├── LocationType.cs
 │   │   │       ├── CorrelationId.cs
 │   │   │       ├── PassengerCount.cs
+│   │   │       ├── GeoCoordinate.cs
+│   │   │       ├── DailyPrayerSchedule.cs
+│   │   │       ├── PrayerWindow.cs
+│   │   │       ├── Prayer.cs
 │   │   │       ├── LocalizedTime.cs
 │   │   │       └── Currency.cs
 │   │   ├── Time/
@@ -43,11 +45,7 @@ UTOP.sln
 │   │   │   ├── SystemClock.cs
 │   │   │   ├── FakeClock.cs
 │   │   │   ├── IBusinessCalendar.cs
-│   │   │   ├── CalendarContext.cs
-│   │   │   ├── GeoCoordinate.cs
-│   │   │   ├── DailyPrayerSchedule.cs
-│   │   │   ├── PrayerWindow.cs
-│   │   │   └── Prayer.cs
+│   │   │   └── CalendarContext.cs
 │   │   └── Infrastructure/
 │   │       ├── Logging/                    (structured logging setup)
 │   │       ├── Messaging/                  (RabbitMQ base classes)
@@ -118,13 +116,6 @@ UTOP.<ContextName>/
 │   │   ├── <Context>DbContext.cs
 │   │   ├── <Context>Repository.cs
 │   │   └── Migrations/
-│   ├── Messaging/                (integration event records + translator — every context that
-│   │                               publishes integration events needs this; per ARCH-008's
-│   │                               Publishes column, that's essentially all 11 full-DDD contexts.
-│   │                               Discovered missing from this template during UTOP.Booking
-│   │                               implementation, which already used this exact folder and
-│   │                               namespace — UTOP.Booking.Infrastructure.Messaging — per
-│   │                               BOOKING-001 §10.1/§10.3; the template just hadn't caught up.)
 │   └── ExternalServices/
 │       ├── Stubs/
 │       └── Adapters/

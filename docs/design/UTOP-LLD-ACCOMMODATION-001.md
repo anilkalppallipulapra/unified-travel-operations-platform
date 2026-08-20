@@ -1,7 +1,7 @@
 # Low-Level Design — Accommodation Context
 **Document ID**: UTOP-LLD-ACCOMMODATION-001
-**Version**: 1.1.1
-**Status**: Review cycle 1 complete — all 12 findings addressed, including the follow-on `Location` field-mapping correction. Ready to baseline pending your sign-off.
+**Version**: 1.2.0
+**Status**: Baselined — corrected against implementation discoveries (2026-08-01 session). Ready for continued implementation.
 **Context**: Accommodation
 **Schema**: `utop_accommodation`
 **Depends on**: UTOP-ARCH-001, UTOP-ARCH-003, UTOP-ARCH-004, UTOP-ARCH-005, UTOP-ARCH-006, UTOP-ARCH-007, UTOP-ARCH-008, UTOP-ARCH-009, UTOP-ARCH-010
@@ -15,6 +15,7 @@
 | 1.0.0 | Initial draft. **First full design of this aggregate** — no prior ARCH artifact (ADR-001, Domain Models §12, Aggregate Invariants, State Machines) carried anything beyond a one-line summary for Accommodation. This document originates the aggregate shape, state machine, invariants, and guest-data model, all previously undefined. Flagged for a review cycle before baseline, same discipline BOOKING-001 applied. |
 | 1.1.0 | Review cycle 1: `LinkToPilgrimage` now takes `IClock` (no direct system-clock call in the domain); stopped stating `AccommodationAmendedIntegrationEvent` is published until ARCH-007 admits it; `Amend()` now rejects a new check-in already in the past (AC-TINV-004); `Create()` now validates `propertyExternalReference` and `Property.Code` (AC-INV-015, AC-INV-016); `Room` gained a `ProviderRoomReference` business identity with duplicate rejection on `AddRoom` (AC-INV-018) and duplicate-occupant rejection within a room (AC-INV-017); full EF Core configurations and PostgreSQL DDL added (§7); concurrency and persistence-mapping tests added (§10.2–10.3); UTC/`TIMESTAMPTZ`/`DATE` storage stated explicitly (§7.1). Cancellation cutoff (`UTOP-LLD-ACM-01`) and the two ARCH-007 governance gaps (`UTOP-LLD-ACM-02`, `UTOP-LLD-ACM-06`) remain open by decision — see §12. |
 | 1.1.1 | `UTOP-LLD-ACM-07` closed — confirmed against the real Shared Kernel `Location` record (`Code`, `Type: LocationType`, `DisplayName?`). §7.2/§7.3 corrected to map all three fields instead of the placeholder that only mapped `Code`. |
+| 1.2.0 | Implementation-discovered corrections (session 2026-08-01): `DateRange` does not exist in Shared Kernel (confirmed against the real file listing) — `Stay` replaced throughout (§3.1, §5, §7) with plain `CheckInDate`/`CheckOutDate` (`DateOnly`) properties and a computed `Nights` property, matching the raw-field precedent `UTOP.Booking`'s own `Itinerary` already established; property renamed `CheckInDate`/`CheckOutDate` (not `CheckIn`/`CheckOut`) specifically to avoid a name collision with the `CheckIn()`/`CheckOut()` methods (C# forbids a property and method sharing a name) — see Corrections table for the resulting `<Verb>Date` property / `<Verb>()` method convention; §6.3 inbound event handlers now use locally-owned contract types (`BookingCancelledInboundEvent`, `PilgrimageConfirmedInboundEvent` in `Infrastructure/Messaging/`) instead of implying direct import of Booking's/Pilgrimage's internal event types, per ARCH-008 bounded-context isolation; `PilgrimageConfirmedInboundEvent`'s shape is explicitly flagged speculative pending the (not-yet-written) Pilgrimage LLD. |
 
 ---
 
@@ -28,6 +29,9 @@
 | Concurrency field | Not modeled for this context previously | `long Version`, optimistic concurrency | ARCH-006 §5.2 — reusing the resolved pattern rather than reopening BOOKING-001's open item (`UTOP-LLD-BK-05`) a second time. |
 | `AccommodationAmendedIntegrationEvent` | ARCH-008 §2 lists it under "Publishes" | **Not currently a registered event.** ARCH-007 §4.2 (Event Ownership Register) contains only `AccommodationBookedIntegrationEvent` and `AccommodationCancelledIntegrationEvent` for this context — no amended entry exists. Two prior artifacts disagree with each other, same class of conflict as the aggregate-name issue above. | ARCH-007 §4.3 rule 4: *"A new event type requires an entry in this register before implementation."* Treated here as **not yet authorized** — see Open Item UTOP-LLD-ACM-02. |
 | Pilgrimage as a consumer of `AccommodationBookedIntegrationEvent` | ARCH-008 §4 states Pilgrimage consumes this event "to verify sacred site proximity" — a hard saga dependency | ARCH-007 §4.2's "Allowed Consumers" column for `AccommodationBookedIntegrationEvent` lists only **Notification, Analytics** — Pilgrimage is absent | A third artifact disagreement. Pilgrimage's saga step depends on this consumption working, so this isn't cosmetic — it's a missing authorization the Architecture Board needs to close. See Open Item UTOP-LLD-ACM-06. |
+| `Stay` (`DateRange`) | §3.1/§5/§7 originally typed `Stay` as `DateRange`, assumed to exist in Shared Kernel — **partially correct**: `DateRange` was in fact ratified in ARCH-010 §5.2, just never implemented as an actual file in `UTOP.Shared`. Discovered mid-implementation and initially misdiagnosed as "never existed." | `DateRange` retired from ARCH-010 (v1.0.2) rather than implemented to match — the only two contexts to reach implementation (Booking's `Itinerary`, Accommodation) both ended up not needing it. `Stay` replaced with plain `CheckInDate`/`CheckOutDate` (`DateOnly`) properties and a computed `Nights` property. | Architect decision: keep the already-committed implementation (`feature/implementation` commit `97f6838`) rather than revert working code to match a type nothing else uses. See ARCH-010 §5.2 amendment log. |
+| Property naming: `CheckInDate`/`CheckOutDate` vs. `CheckIn()`/`CheckOut()` | Not applicable — didn't exist as an issue before `Stay` was decomposed into date properties | Property named `<Verb>Date`, method retained as `<Verb>()` — e.g. `CheckInDate` (property) / `CheckIn()` (method) | C# forbids a property and a method sharing a name (CS0102) — this combination surfaced only once `Stay.Start`/`Stay.End` became direct `CheckIn`/`CheckOut` properties, colliding with the existing `CheckIn()`/`CheckOut()` state-transition methods. Adopted here as a standing convention for any future context with a similar date-plus-verb pairing. |
+| Inbound integration event types (§6.3) | Handler pseudocode referenced `BookingCancelledIntegrationEvent`/`PilgrimageConfirmedIntegrationEvent` directly, implying these are importable, shared types | Each inbound message gets a locally-owned contract in `Infrastructure/Messaging/` (`BookingCancelledInboundEvent`, `PilgrimageConfirmedInboundEvent`), decoupled from how the producing context internally models the same event | A consuming context importing a producing context's internal event type would cross the Application/Infrastructure boundary and violate ARCH-008 bounded-context isolation. Standard anti-corruption-layer pattern — worth stating explicitly in a future ARCH artifact so subsequent LLDs' handler pseudocode doesn't repeat the implication. Not yet verified whether Booking's own inbound handlers (if any) already follow this pattern — flag for future check, not asserted here. |
 
 ---
 
@@ -130,7 +134,9 @@ public sealed class AccommodationBooking : AggregateRoot
     public string? LinkedPilgrimageId { get; private set; }         // optional, read-only correlation — set only via event
     public Location Property { get; private set; } = null!;         // Shared Kernel; external property location
     public string PropertyExternalReference { get; private set; } = null!;  // IAccommodationProvider's identifier
-    public DateRange Stay { get; private set; } = null!;             // Shared Kernel; CheckIn = Start, CheckOut = End
+    public DateOnly CheckInDate { get; private set; }                // Shared Kernel has no DateRange type — see Corrections table
+    public DateOnly CheckOutDate { get; private set; }
+    public int Nights => CheckOutDate.DayNumber - CheckInDate.DayNumber;
     public Money TotalPrice { get; private set; } = null!;
     public AccommodationBookingStatus Status { get; private set; }
     public string PrimaryGuestName { get; private set; } = null!;
@@ -156,7 +162,8 @@ public sealed class AccommodationBooking : AggregateRoot
         string bookingId,
         Location property,
         string propertyExternalReference,
-        DateRange stay,
+        DateOnly checkInDate,
+        DateOnly checkOutDate,
         Money price,
         string primaryGuestName,
         CorrelationId correlationId,
@@ -181,16 +188,16 @@ public sealed class AccommodationBooking : AggregateRoot
             throw new AccommodationPriceMustBePositiveException();
 
         // AC-INV-002
-        if (stay.Nights < 1)
-            throw new InvalidStayDurationException(stay.Start, stay.End);
+        if (checkOutDate.DayNumber - checkInDate.DayNumber < 1)
+            throw new InvalidStayDurationException(checkInDate, checkOutDate);
 
         if (string.IsNullOrWhiteSpace(primaryGuestName))
             throw new ArgumentException("Primary guest name is required.", nameof(primaryGuestName));
 
         // AC-TINV-001
-        var checkInUtc = stay.Start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var checkInUtc = checkInDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         if (checkInUtc <= clock.UtcNow.UtcDateTime)
-            throw new AccommodationCheckInAlreadyPassedException(stay.Start, clock.UtcNow);
+            throw new AccommodationCheckInAlreadyPassedException(checkInDate, clock.UtcNow);
 
         var now = clock.UtcNow;
 
@@ -201,7 +208,8 @@ public sealed class AccommodationBooking : AggregateRoot
             BookingId = bookingId,
             Property = property,
             PropertyExternalReference = propertyExternalReference,
-            Stay = stay,
+            CheckInDate = checkInDate,
+            CheckOutDate = checkOutDate,
             TotalPrice = price,
             PrimaryGuestName = primaryGuestName,
             Status = AccommodationBookingStatus.Requested,
@@ -219,7 +227,8 @@ public sealed class AccommodationBooking : AggregateRoot
             AccommodationBookingId: booking.AccommodationBookingId,
             BookingId: bookingId,
             Property: property,
-            Stay: stay,
+            CheckInDate: checkInDate,
+            CheckOutDate: checkOutDate,
             TotalPrice: price,
             OccurredAt: now));
 
@@ -268,28 +277,30 @@ public sealed class AccommodationBooking : AggregateRoot
     /// AC-INV-014: stay is replaced atomically, never partially mutated.
     /// Transitions: CONFIRMED → CONFIRMED (state unchanged; version increments)
     /// </summary>
-    public void Amend(DateRange newStay, Money newPrice, CorrelationId correlationId, IClock clock)
+    public void Amend(DateOnly newCheckInDate, DateOnly newCheckOutDate, Money newPrice, CorrelationId correlationId, IClock clock)
     {
         if (Status != AccommodationBookingStatus.Confirmed)
             throw new InvalidAccommodationStateTransitionException(AccommodationBookingId, Status, AccommodationBookingStatus.Confirmed);
 
-        if (newStay.Nights < 1)
-            throw new InvalidStayDurationException(newStay.Start, newStay.End);
+        if (newCheckOutDate.DayNumber - newCheckInDate.DayNumber < 1)
+            throw new InvalidStayDurationException(newCheckInDate, newCheckOutDate);
 
         // AC-TINV-004
-        var newCheckInUtc = newStay.Start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var newCheckInUtc = newCheckInDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         if (newCheckInUtc <= clock.UtcNow.UtcDateTime)
-            throw new AccommodationCheckInAlreadyPassedException(newStay.Start, clock.UtcNow);
+            throw new AccommodationCheckInAlreadyPassedException(newCheckInDate, clock.UtcNow);
 
         // AC-INV-006
         if (newPrice.Currency != TotalPrice.Currency)
             throw new AccommodationCurrencyImmutableAfterConfirmationException(AccommodationBookingId, TotalPrice.Currency, newPrice.Currency);
 
-        var previousStay = Stay;
+        var previousCheckInDate = CheckInDate;
+        var previousCheckOutDate = CheckOutDate;
         var previousPrice = TotalPrice;
         var now = clock.UtcNow;
 
-        Stay = newStay;      // AC-INV-014: atomic replacement
+        CheckInDate = newCheckInDate;      // AC-INV-014: atomic replacement
+        CheckOutDate = newCheckOutDate;
         TotalPrice = newPrice;
         AmendmentVersion++;
         UpdatedAt = now;
@@ -302,8 +313,10 @@ public sealed class AccommodationBooking : AggregateRoot
             AggregateType: nameof(AccommodationBooking),
             AccommodationBookingId: AccommodationBookingId,
             AmendmentVersion: AmendmentVersion,
-            PreviousStay: previousStay,
-            NewStay: newStay,
+            PreviousCheckInDate: previousCheckInDate,
+            PreviousCheckOutDate: previousCheckOutDate,
+            NewCheckInDate: newCheckInDate,
+            NewCheckOutDate: newCheckOutDate,
             PreviousPrice: previousPrice,
             NewPrice: newPrice,
             OccurredAt: now));
@@ -326,10 +339,10 @@ public sealed class AccommodationBooking : AggregateRoot
             throw new InvalidAccommodationStateTransitionException(AccommodationBookingId, Status, AccommodationBookingStatus.Cancelled);
 
         // AC-TINV-002 — cutoff is a configurable operational default (ARCH decision precedent: BOOKING-001 Decision 6).
-        // Actual cutoff hours value is an open item — see §13.
+        // Actual cutoff hours value is an open item — see §12.
         if (Status == AccommodationBookingStatus.Confirmed)
         {
-            var checkInUtc = new DateTimeOffset(Stay.Start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            var checkInUtc = new DateTimeOffset(CheckInDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
             var timeUntilCheckIn = checkInUtc - clock.UtcNow;
             if (timeUntilCheckIn <= cancellationCutoff)
                 throw new AccommodationCancellationWindowExpiredException(AccommodationBookingId, checkInUtc, clock.UtcNow);
@@ -353,6 +366,9 @@ public sealed class AccommodationBooking : AggregateRoot
     /// <summary>
     /// Records guest check-in.
     /// AC-TINV-003: cannot check in before the stay's check-in date.
+    /// Property/method naming: CheckInDate (property) vs CheckIn() (method) — deliberately
+    /// distinct names, since C# forbids a property and method sharing a name (CS0102).
+    /// Standing convention going forward for any context with a similar date-plus-verb pairing.
     /// Transitions: CONFIRMED → CHECKED_IN
     /// </summary>
     public void CheckIn(CorrelationId correlationId, IClock clock)
@@ -361,7 +377,7 @@ public sealed class AccommodationBooking : AggregateRoot
             throw new InvalidAccommodationStateTransitionException(AccommodationBookingId, Status, AccommodationBookingStatus.CheckedIn);
 
         var now = clock.UtcNow;
-        var checkInDateUtc = new DateTimeOffset(Stay.Start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var checkInDateUtc = new DateTimeOffset(CheckInDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
         // AC-TINV-003
         if (now < checkInDateUtc)
@@ -404,7 +420,7 @@ public sealed class AccommodationBooking : AggregateRoot
             throw new InvalidAccommodationStateTransitionException(AccommodationBookingId, Status, AccommodationBookingStatus.NoShow);
 
         var now = clock.UtcNow;
-        var checkInDateUtc = new DateTimeOffset(Stay.Start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var checkInDateUtc = new DateTimeOffset(CheckInDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
         if (now <= checkInDateUtc)
             throw new AccommodationCheckInTooEarlyException(AccommodationBookingId, checkInDateUtc, now);
 
@@ -531,7 +547,7 @@ namespace UTOP.Accommodation.Domain.Entities;
 
 /// <summary>
 /// A room line-item within the reservation. Rate is per-night; total room cost is
-/// derived (RatePerNight × Stay.Nights), never stored redundantly.
+/// derived (RatePerNight × Nights), never stored redundantly.
 /// AC-INV-009: RatePerNight must be positive.
 /// </summary>
 public sealed class Room : Entity
@@ -655,7 +671,7 @@ namespace UTOP.Accommodation.Domain.Events;
 public sealed record AccommodationBookingCreated(
     Guid EventId, CorrelationId CorrelationId, string AggregateId, string AggregateType,
     AccommodationBookingId AccommodationBookingId, string BookingId, Location Property,
-    DateRange Stay, Money TotalPrice, DateTimeOffset OccurredAt)
+    DateOnly CheckInDate, DateOnly CheckOutDate, Money TotalPrice, DateTimeOffset OccurredAt)
     : DomainEvent(EventId, CorrelationId, AggregateId, AggregateType, OccurredAt);
 
 public sealed record AccommodationBookingConfirmed(
@@ -667,7 +683,8 @@ public sealed record AccommodationBookingConfirmed(
 public sealed record AccommodationBookingAmended(
     Guid EventId, CorrelationId CorrelationId, string AggregateId, string AggregateType,
     AccommodationBookingId AccommodationBookingId, int AmendmentVersion,
-    DateRange PreviousStay, DateRange NewStay, Money PreviousPrice, Money NewPrice,
+    DateOnly PreviousCheckInDate, DateOnly PreviousCheckOutDate,
+    DateOnly NewCheckInDate, DateOnly NewCheckOutDate, Money PreviousPrice, Money NewPrice,
     DateTimeOffset OccurredAt)
     : DomainEvent(EventId, CorrelationId, AggregateId, AggregateType, OccurredAt);
 
@@ -720,7 +737,7 @@ ConfirmAccommodationBookingCommand(AccommodationBookingId, RoomSelections, Corre
       4. booking.Confirm()
       5. Persist; publish AccommodationBookedIntegrationEvent (outbound, registered in ARCH-007 §4.2)
 
-AmendAccommodationBookingCommand(AccommodationBookingId, NewStay, NewPrice, CorrelationId, ExpectedVersion)
+AmendAccommodationBookingCommand(AccommodationBookingId, NewCheckInDate, NewCheckOutDate, NewPrice, CorrelationId, ExpectedVersion)
   → AmendAccommodationBookingCommandHandler
       1. Load; check version; booking.Amend(...)
       2. Persist domain event only. Do NOT publish an integration event for this
@@ -755,18 +772,40 @@ GetAccommodationBookingsByBookingIdQuery(BookingId)       → GetAccommodationBo
 
 ### 6.3 Inbound Event Handlers
 
+**Local contract ownership — corrected per implementation discovery (see Corrections table).**
+A consuming context must not import a producing context's internal event type — doing so
+would violate ARCH-008 bounded-context isolation and cross the Application/Infrastructure
+layer boundary. `UTOP.Accommodation` defines its own local contract for each inbound message
+shape, decoupled from how Booking (or, eventually, Pilgrimage) internally models the same
+event — standard anti-corruption-layer pattern. These local contracts live in
+`Infrastructure/Messaging/AccommodationInboundEvents.cs`.
+
+```csharp
+namespace UTOP.Accommodation.Infrastructure.Messaging;
+
+/// <summary>Local shape of Booking's outbound event — not a shared type with UTOP.Booking.</summary>
+public sealed record BookingCancelledInboundEvent(string BookingId, CorrelationId CorrelationId);
+
+/// <summary>
+/// Local shape of Pilgrimage's outbound event. SPECULATIVE — UTOP.Pilgrimage does not exist
+/// as an implemented context yet and no Pilgrimage LLD exists to confirm this shape against.
+/// Confirm and correct when the Pilgrimage LLD is written (see Open Items).
+/// </summary>
+public sealed record PilgrimageConfirmedInboundEvent(
+    string PilgrimageId, IReadOnlyList<string> PilgrimBookingIds, CorrelationId CorrelationId);
+```
+
 ```csharp
 namespace UTOP.Accommodation.Application.EventHandlers;
 
 /// <summary>
 /// Releases the accommodation hold when the associated travel booking is cancelled.
 /// Consumed per ARCH-008 §2. If no matching AccommodationBooking is found (e.g. one
-/// was never created for this BookingId), the handler is a no-op — mirrors Booking's
-/// own ResourceAllocatedEventHandler tolerance pattern.
+/// was never created for this BookingId), the handler is a no-op.
 /// </summary>
 public sealed class BookingCancelledEventHandler
 {
-    public async Task HandleAsync(BookingCancelledIntegrationEvent evt, CancellationToken ct)
+    public async Task HandleAsync(BookingCancelledInboundEvent evt, CancellationToken ct)
     {
         var bookings = await _readRepository.GetByBookingIdAsync(evt.BookingId, ct);
         foreach (var booking in bookings.Where(b => b.Status is AccommodationBookingStatus.Requested or AccommodationBookingStatus.Confirmed))
@@ -783,7 +822,7 @@ public sealed class BookingCancelledEventHandler
 /// </summary>
 public sealed class PilgrimageConfirmedEventHandler
 {
-    public async Task HandleAsync(PilgrimageConfirmedIntegrationEvent evt, CancellationToken ct)
+    public async Task HandleAsync(PilgrimageConfirmedInboundEvent evt, CancellationToken ct)
     {
         var bookings = await _readRepository.GetByBookingIdsAsync(evt.PilgrimBookingIds, ct);
         foreach (var booking in bookings)
@@ -821,7 +860,7 @@ public interface ISacredSiteProximityProvider
 
 ### 7.1 Storage Rules (ARCH-009 alignment)
 
-All timestamp columns (`created_at`, `updated_at`) are `TIMESTAMPTZ`, storing UTC — no exceptions, per ARCH-009's `DateTime` ban and UTC-storage mandate. `Stay` (`DateRange`) maps to two `DATE` columns (`check_in`, `check_out`) — dates only, no time-of-day component, since check-in/check-out are calendar days, not instants.
+All timestamp columns (`created_at`, `updated_at`) are `TIMESTAMPTZ`, storing UTC — no exceptions, per ARCH-009's `DateTime` ban and UTC-storage mandate. `CheckInDate`/`CheckOutDate` are plain `DateOnly` properties (Shared Kernel has no `DateRange` type — see Corrections table) mapped directly to two `DATE` columns (`check_in`, `check_out`) — dates only, no time-of-day component, since check-in/check-out are calendar days, not instants.
 
 ### 7.2 EF Core Configurations
 
@@ -857,11 +896,10 @@ public sealed class AccommodationBookingConfiguration : IEntityTypeConfiguration
             p.Property(x => x.DisplayName).HasColumnName("property_display_name").HasMaxLength(200);
         });
 
-        builder.OwnsOne(b => b.Stay, s =>
-        {
-            s.Property(x => x.Start).HasColumnName("check_in").HasColumnType("date").IsRequired();
-            s.Property(x => x.End).HasColumnName("check_out").HasColumnType("date").IsRequired();
-        });
+        // No DateRange in Shared Kernel — plain DateOnly properties, direct mapping
+        // (not OwnsOne, since there's no owned type here anymore).
+        builder.Property(b => b.CheckInDate).HasColumnName("check_in").HasColumnType("date").IsRequired();
+        builder.Property(b => b.CheckOutDate).HasColumnName("check_out").HasColumnType("date").IsRequired();
 
         builder.OwnsOne(b => b.TotalPrice, m =>
         {
@@ -1112,7 +1150,7 @@ UTOP-LLD-ACM-06 — Architecture Board must add before this binding can be wired
 |---|---|
 | `Money` | `TotalPrice`, `Room.RatePerNight`, `AncillaryService.Price`; mapped via `OwnsOne` |
 | `Location` | `Property` |
-| `DateRange` | `Stay` — `Nights` property drives AC-INV-002 directly, no reimplementation |
+| ~~`DateRange`~~ | **Does not exist in Shared Kernel** — discovered during implementation. `CheckInDate`/`CheckOutDate` are plain `DateOnly` properties with a computed `Nights` property instead. See Corrections table. |
 | `CorrelationId` | Carried on every command and domain event |
 | `IClock` | Injected into `Create()`, `Confirm()`, `Amend()`, `Cancel()`, `CheckIn()`, `CheckOut()`, `RecordNoShow()` |
 
@@ -1196,7 +1234,7 @@ CancelAccommodationBookingCommandHandler_StaleExpectedVersion_ThrowsConcurrencyE
 ```
 AccommodationBookingConfiguration_MoneyOwnedType_RoundTripsAmountAndCurrency()
 AccommodationBookingConfiguration_LocationOwnedType_RoundTripsPropertyCode()
-AccommodationBookingConfiguration_DateRangeOwnedType_RoundTripsAsDateColumns()
+AccommodationBookingConfiguration_CheckInCheckOutDates_RoundTripAsDateColumns()
 RoomConfiguration_MoneyOwnedType_RoundTripsRatePerNight()
 AncillaryServiceConfiguration_MoneyOwnedType_RoundTripsPrice()
 ```
@@ -1247,6 +1285,7 @@ DuplicateOccupantException
 | UTOP-LLD-ACM-04 | Refund amount on cancellation — this document records cancellation but does not calculate any refund, same boundary Booking drew (`UTOP-LLD-BK-02`) | Low | CostSplitting LLD |
 | UTOP-LLD-ACM-05 | Outbox processor — shared platform pattern, not re-specified here | Low | Already tracked once in `UTOP-LLD-BK-04`; one processor serves all contexts |
 | UTOP-LLD-LOCALTIME-01 | `LocalizedTime` type-system enforcement | Low | Carried forward from ARCH-009, still open |
+| UTOP-LLD-ACM-08 | `PilgrimageConfirmedInboundEvent`'s shape (`PilgrimageId`, `IReadOnlyList<string> PilgrimBookingIds`, `CorrelationId`) is a best-guess implemented against, not confirmed against a real source — `UTOP.Pilgrimage` doesn't exist as an implemented context and no Pilgrimage LLD exists yet | Medium | Confirm against the actual Pilgrimage LLD once written; correct `AccommodationInboundEvents.cs` if the real shape differs |
 
 ---
 
