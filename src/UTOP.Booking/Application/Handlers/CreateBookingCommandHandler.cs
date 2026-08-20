@@ -1,10 +1,11 @@
+using UTOP.Booking.Application.Commands;
 using UTOP.Booking.Application.Ports;
 using UTOP.Booking.Domain.Entities;
 using UTOP.Booking.Domain.Repositories;
 using UTOP.Shared.Time;
 using BookingAggregate = UTOP.Booking.Domain.Aggregates.Booking;
 
-namespace UTOP.Booking.Application.Commands;
+namespace UTOP.Booking.Application.Handlers;
 
 public sealed class CreateBookingCommandHandler
 {
